@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Kamera Çevirmeni</title>
+  <link rel="manifest" href='data:application/manifest+json,{"name":"Kamera Çevirmeni","short_name":"KameraÇev","start_url":".","display":"standalone","background_color":"%230d0d0d","theme_color":"%235c1a2e","icons":[{"src":"icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}]}'>
+  <style>
+    :root {
+      --bordo: #5c1a2e;
+      --bordo-acik: #7b2438;
+      --bordo-koyu: #3d0f1d;
+      --siyah: #0d0d0d;
+      --siyah-kart: #1a1a1a;
+      --siyah-icerik: #222222;
+      --beyaz: #f5f5f5;
+      --beyaz-soluk: #b8b8b8;
+      --cizgi: #2e2e2e;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--siyah); color: var(--beyaz); min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center;
+      padding: 12px; gap: 12px;
+    }
+    h1 {
+      font-size: 1.25rem; color: var(--beyaz); letter-spacing: 2px;
+      text-transform: uppercase; font-weight: 700;
+      padding: 4px 0;
+      border-bottom: 2px solid var(--bordo);
+    }
+    .card {
+      background: var(--siyah-kart); border-radius: 14px; padding: 16px;
+      width: 100%; max-width: 480px;
+      border: 1px solid var(--cizgi);
+      box-shadow: 0 4px 24px rgba(0,0,0,.6);
+    }
+    .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    select, button, input[type="file"] {
+      font-family: inherit; font-size: .95rem; border: none;
+      border-radius: 8px; padding: 12px 14px; cursor: pointer;
+      transition: .2s;
+    }
+    select {
+      background: var(--siyah-icerik); color: var(--beyaz); flex: 1; min-width: 140px;
+      border: 1px solid var(--bordo-koyu);
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23f5f5f5' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 38px;
+    }
+    select:focus { outline: 1px solid var(--bordo-acik); }
+    button {
+      background: var(--bordo); color: var(--beyaz); font-weight: 600;
+      display: flex; align-items: center; justify-content: center; gap: 6px;
+      border: 1px solid var(--bordo-acik);
+    }
+    button:hover { background: var(--bordo-acik); }
+    button:active { transform: scale(.96); }
+    button.sec {
+      background: var(--siyah-icerik);
+      border: 1px solid var(--cizgi);
+      color: var(--beyaz);
+    }
+    button.sec:hover { border-color: var(--bordo-acik); color: var(--beyaz); }
+    button:disabled { opacity: .4; pointer-events: none; }
+    #video {
+      width: 100%; border-radius: 10px; background: #000;
+      max-height: 300px; object-fit: cover; display: none;
+      border: 1px solid var(--bordo-koyu);
+    }
+    #preview {
+      width: 100%; border-radius: 10px; max-height: 300px;
+      object-fit: contain; display: none; background: #000;
+      border: 1px solid var(--bordo-koyu);
+    }
+    .label {
+      font-size: .72rem; color: var(--beyaz-soluk); margin-bottom: 8px;
+      text-transform: uppercase; letter-spacing: 2px; font-weight: 600;
+    }
+    textarea {
+      width: 100%; background: var(--siyah-icerik); color: var(--beyaz);
+      border: 1px solid var(--bordo-koyu);
+      border-radius: 8px; padding: 12px; font-family: inherit; font-size: .95rem;
+      resize: vertical; min-height: 80px;
+    }
+    textarea:focus { outline: 1px solid var(--bordo-acik); }
+    textarea::placeholder { color: #666; }
+    #status {
+      font-size: .85rem; color: var(--beyaz-soluk); text-align: center;
+      min-height: 20px; letter-spacing: .3px;
+    }
+    #result {
+      background: var(--siyah-icerik); border-radius: 8px; padding: 14px;
+      margin-top: 8px; font-size: 1rem; line-height: 1.5;
+      word-break: break-word; white-space: pre-wrap;
+      display: none;
+      border-left: 3px solid var(--bordo);
+    }
+    #result .src {
+      color: var(--beyaz-soluk); font-size: .78rem; margin-bottom: 8px;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    #translatedText { color: var(--beyaz); }
+    .hidden { display: none !important; }
+    .divider { height: 1px; background: var(--cizgi); margin: 12px 0; }
+    .btn-row { display: flex; gap: 8px; margin-top: 12px; }
+    .btn-row button { flex: 1; }
+    .file-label {
+      display: flex; align-items: center; justify-content: center;
+      background: var(--siyah-icerik); border-radius: 8px; padding: 12px;
+      cursor: pointer; font-size: .9rem; color: var(--beyaz);
+      border: 1px dashed var(--bordo-acik); flex: 1;
+      transition: .2s;
+    }
+    .file-label:hover { background: var(--bordo-koyu); }
+    .file-label input { display: none; }
+  </style>
+</head>
+<body>
+
+<h1>📷 Kamera Çevirmeni</h1>
+
+<!-- Hedef Dil -->
+<div class="card">
+  <div class="label">Hedef Dil</div>
+  <select id="targetLang">
+    <option value="tr" selected>Türkçe</option>
+    <option value="en">İngilizce</option>
+    <option value="de">Almanca</option>
+    <option value="fr">Fransızca</option>
+    <option value="es">İspanyolca</option>
+    <option value="it">İtalyanca</option>
+    <option value="ru">Rusça</option>
+    <option value="ar">Arapça</option>
+  </select>
+</div>
+
+<!-- Kamera / Görsel -->
+<div class="card">
+  <div class="label">Görüntü Kaynağı</div>
+  <video id="video" autoplay playsinline muted></video>
+  <img id="preview" alt="Önizleme">
+  <div class="row">
+    <button id="btnCamera" class="sec">📸 Kamerayı Aç</button>
+    <button id="btnCapture" class="hidden">🔍 Yakala ve Çevir</button>
+  </div>
+  <div class="btn-row">
+    <label class="file-label">
+      🖼️ Galeriden Yükle
+      <input type="file" id="fileInput" accept="image/*">
+    </label>
+    <button id="btnCloseCamera" class="sec hidden">Kapat</button>
+  </div>
+</div>
+
+<!-- Metin Girişi -->
+<div class="card">
+  <div class="label">Metin Girişi (Klavye)</div>
+  <textarea id="manualText" placeholder="Çevrilecek metni buraya yazın..."></textarea>
+  <div class="btn-row">
+    <button id="btnManualTranslate">🌐 Çevir</button>
+  </div>
+</div>
+
+<!-- Durum ve Sonuç -->
+<div class="card">
+  <div id="status"></div>
+  <div id="result">
+    <div class="src" id="detectedLang"></div>
+    <div id="translatedText"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  // ----- Service Worker (gömülü) -----
+  const swCode = `
+    const CACHE = 'kamera-cevirmen-v2';
+    const ASSETS = ['./', 'icon-192.png', 'icon-512.png'];
+    self.addEventListener('install', e => {
+      e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
+      self.skipWaiting();
+    });
+    self.addEventListener('activate', e => {
+      e.waitUntil(clients.claim());
+    });
+    self.addEventListener('fetch', e => {
+      if (e.request.method !== 'GET') return;
+      e.respondWith(
+        caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+          if (res.ok && e.request.url.startsWith(self.location.origin)) {
+            const clone = res.clone();
+            caches.open(CACHE).then(c => c.put(e.request, clone));
+          }
+          return res;
+        }))
+      );
+    });
+  `;
+
+  if ('serviceWorker' in navigator) {
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl).catch(() => {});
+  }
+
+  // ----- DOM -----
+  const video = document.getElementById('video');
+  const preview = document.getElementById('preview');
+  const btnCamera = document.getElementById('btnCamera');
+  const btnCapture = document.getElementById('btnCapture');
+  const btnCloseCamera = document.getElementById('btnCloseCamera');
+  const fileInput = document.getElementById('fileInput');
+  const manualText = document.getElementById('manualText');
+  const btnManualTranslate = document.getElementById('btnManualTranslate');
+  const targetLang = document.getElementById('targetLang');
+  const statusEl = document.getElementById('status');
+  const resultEl = document.getElementById('result');
+  const detectedLangEl = document.getElementById('detectedLang');
+  const translatedTextEl = document.getElementById('translatedText');
+
+  let stream = null;
+  let worker = null;
+
+  // ----- Yardımcılar -----
+  function setStatus(msg, isError) {
+    statusEl.textContent = msg || '';
+    statusEl.style.color = isError ? '#c0392b' : '#b8b8b8';
+  }
+
+  function showResult(sourceLang, translated) {
+    detectedLangEl.textContent = sourceLang ? `Algılanan dil: ${sourceLang}` : '';
+    translatedTextEl.textContent = translated;
+    resultEl.style.display = 'block';
+  }
+
+  function hideResult() {
+    resultEl.style.display = 'none';
+    detectedLangEl.textContent = '';
+    translatedTextEl.textContent = '';
+  }
+
+  // ----- Tesseract OCR -----
+  const CANDIDATE_LANGS = ['eng', 'tur', 'deu', 'fra', 'spa', 'ita', 'rus', 'ara'];
+
+  async function recognizeImage(imageSource) {
+    setStatus('OCR hazırlanıyor... (ilk seferde dil verisi indirilir)');
+    try {
+      if (!worker) {
+        worker = await Tesseract.createWorker('eng', 1, {
+          logger: m => {
+            if (m.status === 'recognizing text') {
+              setStatus(`OCR: %${Math.round((m.progress || 0) * 100)}`);
+            }
+          }
+        });
+      }
+
+      let bestResult = { text: '', confidence: 0, lang: 'eng' };
+
+      for (const lang of CANDIDATE_LANGS) {
+        setStatus(`Dil deneniyor: ${lang}...`);
+        try {
+          await worker.reinitialize(lang);
+          const { data } = await worker.recognize(imageSource);
+          const text = (data.text || '').trim();
+          const conf = data.confidence || 0;
+
+          if (text && conf > bestResult.confidence) {
+            bestResult = { text, confidence: conf, lang };
+          }
+          if (conf > 85 && text.length > 5) break;
+        } catch (e) {}
+      }
+
+      if (!bestResult.text) {
+        throw new Error('Görüntüde okunabilir metin bulunamadı.');
+      }
+
+      setStatus(`OCR tamam (güven: %${Math.round(bestResult.confidence)})`);
+      return bestResult;
+    } catch (err) {
+      setStatus('OCR hatası: ' + err.message, true);
+      throw err;
+    }
+  }
+
+  // ----- MyMemory Çeviri -----
+  async function translateText(text, targetLangCode) {
+    const maxBytes = 450;
+    const parts = [];
+    let current = '';
+    for (const char of text) {
+      if (new TextEncoder().encode(current + char).length > maxBytes) {
+        parts.push(current);
+        current = char;
+      } else {
+        current += char;
+      }
+    }
+    if (current) parts.push(current);
+
+    const translations = [];
+    for (const part of parts) {
+      const params = new URLSearchParams({
+        q: part,
+        langpair: `autodetect|${targetLangCode}`
+      });
+      const url = `https://api.mymemory.translated.net/get?${params}`;
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Çeviri servisi yanıt vermedi.');
+      const json = await res.json();
+      if (json.responseStatus !== 200) {
+        throw new Error(json.responseDetails || 'Çeviri başarısız.');
+      }
+      translations.push(json.responseData.translatedText);
+    }
+    return translations.join(' ');
+  }
+
+  // ----- Görüntü İşleme Akışı -----
+  async function processImage(blobOrCanvas) {
+    hideResult();
+    btnCapture.disabled = true;
+    try {
+      const ocr = await recognizeImage(blobOrCanvas);
+      setStatus('Çevriliyor...');
+      const translated = await translateText(ocr.text, targetLang.value);
+      showResult(ocr.lang, translated);
+      setStatus('Tamamlandı ✓');
+    } catch (err) {
+      setStatus(err.message || 'İşlem başarısız.', true);
+    } finally {
+      btnCapture.disabled = false;
+    }
+  }
+
+  // ----- Kamera -----
+  async function openCamera() {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'environment' }
+      });
+      video.srcObject = stream;
+      video.style.display = 'block';
+      preview.style.display = 'none';
+      btnCamera.classList.add('hidden');
+      btnCapture.classList.remove('hidden');
+      btnCloseCamera.classList.remove('hidden');
+      setStatus('Kamera açık. Nesneyi hizalayıp yakalayın.');
+    } catch (err) {
+      setStatus('Kamera erişimi reddedildi: ' + err.message, true);
+    }
+  }
+
+  function closeCamera() {
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    video.style.display = 'none';
+    btnCamera.classList.remove('hidden');
+    btnCapture.classList.add('hidden');
+    btnCloseCamera.classList.add('hidden');
+    setStatus('');
+  }
+
+  async function captureFrame() {
+    if (!stream) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    await processImage(canvas);
+  }
+
+  // ----- Galeri -----
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    closeCamera();
+    const url = URL.createObjectURL(file);
+    preview.src = url;
+    preview.style.display = 'block';
+    await processImage(file);
+    URL.revokeObjectURL(url);
+  });
+
+  // ----- Manuel Çeviri -----
+  btnManualTranslate.addEventListener('click', async () => {
+    const text = manualText.value.trim();
+    if (!text) {
+      setStatus('Lütfen bir metin girin.', true);
+      return;
+    }
+    hideResult();
+    btnManualTranslate.disabled = true;
+    try {
+      setStatus('Çevriliyor...');
+      const translated = await translateText(text, targetLang.value);
+      showResult('', translated);
+      setStatus('Tamamlandı ✓');
+    } catch (err) {
+      setStatus(err.message || 'Çeviri hatası.', true);
+    } finally {
+      btnManualTranslate.disabled = false;
+    }
+  });
+
+  // ----- Olaylar -----
+  btnCamera.addEventListener('click', openCamera);
+  btnCapture.addEventListener('click', captureFrame);
+  btnCloseCamera.addEventListener('click', closeCamera);
+
+})();
+</script>
+</body>
+</html>
